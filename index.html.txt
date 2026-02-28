@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Click The Circle</title>
+    <style>
+        body {
+            text-align: center;
+            font-family: Arial;
+            background: #f2f2f2;
+        }
+
+        #gameArea {
+            position: relative;
+            width: 100%;
+            height: 80vh;
+            border: 2px solid black;
+            overflow: hidden;
+        }
+
+        #circle {
+            width: 80px;
+            height: 80px;
+            background: red;
+            border-radius: 50%;
+            position: absolute;
+            cursor: pointer;
+        }
+
+        #info {
+            font-size: 22px;
+            margin: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<h1>Click The Circle!</h1>
+<div id="info">
+    Score: <span id="score">0</span> |
+    Time: <span id="time">30</span>
+</div>
+
+<div id="gameArea">
+    <div id="circle"></div>
+</div>
+
+<script>
+    let score = 0;
+    let timeLeft = 30;
+    const circle = document.getElementById("circle");
+    const scoreDisplay = document.getElementById("score");
+    const timeDisplay = document.getElementById("time");
+    const gameArea = document.getElementById("gameArea");
+
+    function moveCircle() {
+        const maxX = gameArea.clientWidth - 80;
+        const maxY = gameArea.clientHeight - 80;
+        const randomX = Math.random() * maxX;
+        const randomY = Math.random() * maxY;
+        circle.style.left = randomX + "px";
+        circle.style.top = randomY + "px";
+    }
+
+    circle.addEventListener("click", function() {
+        score++;
+        scoreDisplay.textContent = score;
+        moveCircle();
+    });
+
+    const timer = setInterval(function() {
+        timeLeft--;
+        timeDisplay.textContent = timeLeft;
+
+        if (timeLeft <= 0) {
+            clearInterval(timer);
+            circle.style.display = "none";
+            alert("Game Over! Score: " + score);
+        }
+    }, 1000);
+
+    moveCircle();
+</script>
+
+</body>
+</html>
