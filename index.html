@@ -12,9 +12,11 @@
         #gameArea {
             position: relative;
             width: 100%;
-            height: 80vh;
+            height: 60vh;
             border: 2px solid black;
             overflow: hidden;
+            display: none;
+            margin-top: 20px;
         }
 
         #circle {
@@ -26,16 +28,34 @@
             cursor: pointer;
         }
 
-        #info {
-            font-size: 22px;
-            margin: 10px;
+        #leaderboard {
+            margin-top: 20px;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        input {
+            padding: 8px;
+            font-size: 16px;
         }
     </style>
 </head>
 <body>
 
-<h1>Click The Circle!</h1>
-<div id="info">
+<h1>Click The Circle</h1>
+
+<div id="startScreen">
+    <p>Enter Your Name:</p>
+    <input type="text" id="playerName" placeholder="Your name">
+    <br><br>
+    <button onclick="startGame()">Start Game</button>
+</div>
+
+<div id="gameInfo" style="display:none;">
     Score: <span id="score">0</span> |
     Time: <span id="time">30</span>
 </div>
@@ -44,21 +64,42 @@
     <div id="circle"></div>
 </div>
 
+<div id="leaderboard"></div>
+
 <script>
     let score = 0;
     let timeLeft = 30;
+    let player = "";
+    let timer;
+
     const circle = document.getElementById("circle");
     const scoreDisplay = document.getElementById("score");
     const timeDisplay = document.getElementById("time");
     const gameArea = document.getElementById("gameArea");
 
-    function moveCircle() {
-        const maxX = gameArea.clientWidth - 80;
-        const maxY = gameArea.clientHeight - 80;
-        const randomX = Math.random() * maxX;
-        const randomY = Math.random() * maxY;
-        circle.style.left = randomX + "px";
-        circle.style.top = randomY + "px";
+    function startGame() {
+        player = document.getElementById("playerName").value;
+
+        if (player.trim() === "") {
+            alert("Please enter your name!");
+            return;
+        }
+
+        document.getElementById("startScreen").style.display = "none";
+        document.getElementById("gameInfo").style.display = "block";
+        gameArea.style.display = "block";
+
+        moveCircle();
+
+        timer = setInterval(function() {
+            timeLeft--;
+            timeDisplay.textContent = timeLeft;
+
+            if (timeLeft <= 0) {
+                clearInterval(timer);
+                endGame();
+            }
+        }, 1000);
     }
 
     circle.addEventListener("click", function() {
@@ -67,18 +108,47 @@
         moveCircle();
     });
 
-    const timer = setInterval(function() {
-        timeLeft--;
-        timeDisplay.textContent = timeLeft;
+    function moveCircle() {
+        const maxX = gameArea.clientWidth - 80;
+        const maxY = gameArea.clientHeight - 80;
 
-        if (timeLeft <= 0) {
-            clearInterval(timer);
-            circle.style.display = "none";
-            alert("Game Over! Score: " + score);
-        }
-    }, 1000);
+        const randomX = Math.random() * maxX;
+        const randomY = Math.random() * maxY;
 
-    moveCircle();
+        circle.style.left = randomX + "px";
+        circle.style.top = randomY + "px";
+    }
+
+    function endGame() {
+        circle.style.display = "none";
+        saveScore();
+        showLeaderboard();
+    }
+
+    function saveScore() {
+        let scores = JSON.parse(localStorage.getItem("leaderboard")) || [];
+
+        scores.push({ name: player, score: score });
+
+        scores.sort((a, b) => b.score - a.score);
+
+        scores = scores.slice(0, 5);
+
+        localStorage.setItem("leaderboard", JSON.stringify(scores));
+    }
+
+    function showLeaderboard() {
+        let scores = JSON.parse(localStorage.getItem("leaderboard")) || [];
+        let boardHTML = "<h2>🏆 Leaderboard</h2>";
+
+        scores.forEach((entry, index) => {
+            boardHTML += `<p>${index + 1}. ${entry.name} - ${entry.score}</p>`;
+        });
+
+        boardHTML += '<br><button onclick="location.reload()">Play Again</button>';
+
+        document.getElementById("leaderboard").innerHTML = boardHTML;
+    }
 </script>
 
 </body>
