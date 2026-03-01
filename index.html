@@ -55,7 +55,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getDatabase, ref, push, get } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
-// ✅ Firebase Config
+// ===== Firebase Config =====
 const firebaseConfig = {
   apiKey: "AIzaSyBTDDHiEWJUb1qOhRvlvwXxiuB4bNNilfc",
   authDomain: "click-game-378e6.firebaseapp.com",
@@ -69,11 +69,11 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const database = getDatabase(app);
 
+// ===== Game Variables =====
 let score = 0;
 let timeLeft = 30;
 let player = "";
 let timer;
-
 const gameArea = document.getElementById("gameArea");
 
 window.startGame = function() {
@@ -111,7 +111,6 @@ window.startGame = function() {
 function randomPosition(element) {
     const maxX = gameArea.clientWidth - 70;
     const maxY = gameArea.clientHeight - 70;
-
     element.style.left = Math.random() * maxX + "px";
     element.style.top = Math.random() * maxY + "px";
 }
@@ -119,40 +118,29 @@ function randomPosition(element) {
 function createObjects() {
     gameArea.innerHTML = "";
 
-    // Create 3 red dots
     for (let i = 0; i < 3; i++) {
         const dot = document.createElement("div");
         dot.classList.add("dot");
-
         randomPosition(dot);
-
         dot.addEventListener("pointerdown", () => {
             score++;
             document.getElementById("score").textContent = score;
-
             randomPosition(dot);
-
             const bomb = document.querySelector(".bomb");
             if (bomb) randomPosition(bomb);
         });
-
         gameArea.appendChild(dot);
     }
 
-    // Create bomb
     const bomb = document.createElement("div");
     bomb.classList.add("bomb");
-
     randomPosition(bomb);
-
     bomb.addEventListener("pointerdown", () => {
         score--;
         score = Math.max(0, score);
         document.getElementById("score").textContent = score;
-
         randomPosition(bomb);
     });
-
     gameArea.appendChild(bomb);
 }
 
@@ -165,13 +153,10 @@ async function endGame() {
 async function saveScore() {
     try {
         console.log("Saving score:", player, score);
-        await push(ref(database, "scores"), {
-            name: player,
-            score: score
-        });
-        console.log("Score saved successfully!");
+        await push(ref(database, "scores"), { name: player, score: score });
+        console.log("✅ Score saved successfully!");
     } catch (error) {
-        console.error("Error saving score:", error);
+        console.error("❌ Error saving score:", error);
         alert("Failed to save score. Check your internet connection.");
     }
 }
@@ -179,35 +164,27 @@ async function saveScore() {
 async function showLeaderboard() {
     try {
         const snapshot = await get(ref(database, "scores"));
-
-        let scores = [];
-
-        snapshot.forEach(child => {
-            scores.push(child.val());
-        });
+        const scores = [];
+        snapshot.forEach(child => scores.push(child.val()));
 
         scores.sort((a,b) => b.score - a.score);
-        scores = scores.slice(0,5);
+        const top5 = scores.slice(0,5);
 
         let html = "<h2>🏆 Global Leaderboard</h2>";
+        if (top5.length === 0) html += "<p>No scores yet.</p>";
+        else top5.forEach((entry,index) => {
+            html += `<p>${index+1}. ${entry.name} - ${entry.score}</p>`;
+        });
 
-        if (scores.length === 0) {
-            html += "<p>No scores yet.</p>";
-        } else {
-            scores.forEach((entry,index) => {
-                html += `<p>${index+1}. ${entry.name} - ${entry.score}</p>`;
-            });
-        }
-
-        html += '<br><button onclick="location.reload()">Play Again</button>';
-
+        html += "<br><button onclick='location.reload()'>Play Again</button>";
         document.getElementById("leaderboard").innerHTML = html;
+
+        console.log("✅ Leaderboard loaded:", top5);
     } catch (error) {
-        console.error("Error loading leaderboard:", error);
+        console.error("❌ Error loading leaderboard:", error);
         document.getElementById("leaderboard").innerHTML = "<p>Failed to load leaderboard.</p>";
     }
 }
 </script>
-
 </body>
 </html>
