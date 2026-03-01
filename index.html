@@ -33,7 +33,7 @@
         .dot { background: red; }
         .bomb { background: black; }
 
-        button { padding: 10px 20px; font-size: 16px; }
+        button { padding: 10px 20px; font-size: 16px; cursor: pointer; }
         input { padding: 8px; font-size: 16px; }
     </style>
 </head>
@@ -43,7 +43,7 @@
 
 <div id="startScreen">
     <p>Enter Your Name:</p>
-    <input type="text" id="playerName">
+    <input type="text" id="playerName" maxlength="15">
     <br><br>
     <button onclick="startGame()">Start Game</button>
 </div>
@@ -59,7 +59,7 @@
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getDatabase, ref, push, get } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+import { getDatabase, ref, push, get, remove } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBTDDHiEWJUb1qOhRvlvwXxiuB4bNNilfc",
@@ -83,12 +83,19 @@ let timer;
 const gameArea = document.getElementById("gameArea");
 
 window.startGame = function() {
-    player = document.getElementById("playerName").value;
-    if (player.trim() === "") {
+    player = document.getElementById("playerName").value.trim();
+
+    if (player === "") {
         alert("Enter name!");
         return;
     }
 
+    score = 0;
+    timeLeft = 30;
+    document.getElementById("score").textContent = 0;
+    document.getElementById("time").textContent = 30;
+
+    document.getElementById("leaderboard").innerHTML = "";
     document.getElementById("startScreen").style.display = "none";
     document.getElementById("gameInfo").style.display = "block";
     gameArea.style.display = "block";
@@ -99,6 +106,7 @@ window.startGame = function() {
     timer = setInterval(() => {
         timeLeft--;
         document.getElementById("time").textContent = timeLeft;
+
         if (timeLeft <= 0) {
             clearInterval(timer);
             endGame();
@@ -110,7 +118,7 @@ function createObjects() {
     gameArea.innerHTML = "";
 
     for (let i = 0; i < 3; i++) {
-        let dot = document.createElement("div");
+        const dot = document.createElement("div");
         dot.classList.add("dot");
 
         dot.addEventListener("pointerdown", () => {
@@ -122,7 +130,7 @@ function createObjects() {
         gameArea.appendChild(dot);
     }
 
-    let bomb = document.createElement("div");
+    const bomb = document.createElement("div");
     bomb.classList.add("bomb");
 
     bomb.addEventListener("pointerdown", () => {
@@ -146,40 +154,54 @@ function moveObjects() {
     });
 }
 
-function endGame() {
-    saveScore();
-    showLeaderboard();
+async function endGame() {
     gameArea.innerHTML = "";
+    await saveScore();
+    showLeaderboard();
 }
 
-function saveScore() {
-    push(ref(database, "scores"), {
+async function saveScore() {
+    await push(ref(database, "scores"), {
         name: player,
         score: score
     });
+
+    const snapshot = await get(ref(database, "scores"));
+    let scores = [];
+
+    snapshot.forEach(child => {
+        scores.push({ key: child.key, ...child.val() });
+    });
+
+    scores.sort((a,b) => b.score - a.score);
+
+    if (scores.length > 20) {
+        for (let i = 20; i < scores.length; i++) {
+            await remove(ref(database, "scores/" + scores[i].key));
+        }
+    }
 }
 
-function showLeaderboard() {
-    get(ref(database, "scores")).then(snapshot => {
-        let scores = [];
+async function showLeaderboard() {
+    const snapshot = await get(ref(database, "scores"));
+    let scores = [];
 
-        snapshot.forEach(child => {
-            scores.push(child.val());
-        });
-
-        scores.sort((a,b) => b.score - a.score);
-        scores = scores.slice(0,5);
-
-        let html = "<h2>🏆 Global Leaderboard</h2>";
-
-        scores.forEach((entry,index) => {
-            html += `<p>${index+1}. ${entry.name} - ${entry.score}</p>`;
-        });
-
-        html += '<br><button onclick="location.reload()">Play Again</button>';
-
-        document.getElementById("leaderboard").innerHTML = html;
+    snapshot.forEach(child => {
+        scores.push(child.val());
     });
+
+    scores.sort((a,b) => b.score - a.score);
+    scores = scores.slice(0,5);
+
+    let html = "<h2>🏆 Global Leaderboard</h2>";
+
+    scores.forEach((entry,index) => {
+        html += `<p>${index+1}. ${entry.name} - ${entry.score}</p>`;
+    });
+
+    html += '<br><button onclick="location.reload()">Play Again</button>';
+
+    document.getElementById("leaderboard").innerHTML = html;
 }
 </script>
 
