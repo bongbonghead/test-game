@@ -59,7 +59,7 @@
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getDatabase, ref, push, get, remove } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+import { getDatabase, ref, push, get } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBTDDHiEWJUb1qOhRvlvwXxiuB4bNNilfc",
@@ -68,8 +68,7 @@ const firebaseConfig = {
   projectId: "click-game-378e6",
   storageBucket: "click-game-378e6.firebasestorage.app",
   messagingSenderId: "623900789347",
-  appId: "1:623900789347:web:df31174faafc600ee28656",
-  measurementId: "G-24QE68D1WX"
+  appId: "1:623900789347:web:df31174faafc600ee28656"
 };
 
 const app = initializeApp(firebaseConfig);
@@ -92,16 +91,16 @@ window.startGame = function() {
 
     score = 0;
     timeLeft = 30;
+
     document.getElementById("score").textContent = 0;
     document.getElementById("time").textContent = 30;
-
     document.getElementById("leaderboard").innerHTML = "";
+
     document.getElementById("startScreen").style.display = "none";
     document.getElementById("gameInfo").style.display = "block";
     gameArea.style.display = "block";
 
     createObjects();
-    moveObjects();
 
     timer = setInterval(() => {
         timeLeft--;
@@ -114,50 +113,60 @@ window.startGame = function() {
     }, 1000);
 }
 
+function randomPosition(element) {
+    const maxX = gameArea.clientWidth - 70;
+    const maxY = gameArea.clientHeight - 70;
+
+    element.style.left = Math.random() * maxX + "px";
+    element.style.top = Math.random() * maxY + "px";
+}
+
 function createObjects() {
     gameArea.innerHTML = "";
 
+    // Create 3 red dots
     for (let i = 0; i < 3; i++) {
         const dot = document.createElement("div");
         dot.classList.add("dot");
 
+        randomPosition(dot);
+
         dot.addEventListener("pointerdown", () => {
             score++;
             document.getElementById("score").textContent = score;
-            moveObjects();
+
+            // ONLY this dot moves
+            randomPosition(dot);
+
+            // Bomb always moves
+            const bomb = document.querySelector(".bomb");
+            if (bomb) randomPosition(bomb);
         });
 
         gameArea.appendChild(dot);
     }
 
+    // Create bomb
     const bomb = document.createElement("div");
     bomb.classList.add("bomb");
+
+    randomPosition(bomb);
 
     bomb.addEventListener("pointerdown", () => {
         score--;
         document.getElementById("score").textContent = score;
-        moveObjects();
+
+        // Bomb moves after click
+        randomPosition(bomb);
     });
 
     gameArea.appendChild(bomb);
 }
 
-function moveObjects() {
-    const objects = document.querySelectorAll(".dot, .bomb");
-
-    objects.forEach(obj => {
-        const maxX = gameArea.clientWidth - 70;
-        const maxY = gameArea.clientHeight - 70;
-
-        obj.style.left = Math.random() * maxX + "px";
-        obj.style.top = Math.random() * maxY + "px";
-    });
-}
-
 async function endGame() {
     gameArea.innerHTML = "";
     await saveScore();
-    showLeaderboard();
+    await showLeaderboard();
 }
 
 async function saveScore() {
@@ -165,25 +174,11 @@ async function saveScore() {
         name: player,
         score: score
     });
-
-    const snapshot = await get(ref(database, "scores"));
-    let scores = [];
-
-    snapshot.forEach(child => {
-        scores.push({ key: child.key, ...child.val() });
-    });
-
-    scores.sort((a,b) => b.score - a.score);
-
-    if (scores.length > 20) {
-        for (let i = 20; i < scores.length; i++) {
-            await remove(ref(database, "scores/" + scores[i].key));
-        }
-    }
 }
 
 async function showLeaderboard() {
     const snapshot = await get(ref(database, "scores"));
+
     let scores = [];
 
     snapshot.forEach(child => {
@@ -195,9 +190,13 @@ async function showLeaderboard() {
 
     let html = "<h2>🏆 Global Leaderboard</h2>";
 
-    scores.forEach((entry,index) => {
-        html += `<p>${index+1}. ${entry.name} - ${entry.score}</p>`;
-    });
+    if (scores.length === 0) {
+        html += "<p>No scores yet.</p>";
+    } else {
+        scores.forEach((entry,index) => {
+            html += `<p>${index+1}. ${entry.name} - ${entry.score}</p>`;
+        });
+    }
 
     html += '<br><button onclick="location.reload()">Play Again</button>';
 
