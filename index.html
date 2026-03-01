@@ -1,12 +1,16 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Click The Circle</title>
+    <title>Click The Dots</title>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
     <style>
         body {
             text-align: center;
             font-family: Arial;
             background: #f2f2f2;
+            touch-action: manipulation;
         }
 
         #gameArea {
@@ -19,38 +23,27 @@
             margin-top: 20px;
         }
 
-        #circle {
-            width: 80px;
-            height: 80px;
-            background: red;
+        .dot, .bomb {
+            width: 70px;
+            height: 70px;
             border-radius: 50%;
             position: absolute;
-            cursor: pointer;
         }
 
-        #leaderboard {
-            margin-top: 20px;
-        }
+        .dot { background: red; }
+        .bomb { background: black; }
 
-        button {
-            padding: 10px 20px;
-            font-size: 16px;
-            cursor: pointer;
-        }
-
-        input {
-            padding: 8px;
-            font-size: 16px;
-        }
+        button { padding: 10px 20px; font-size: 16px; }
+        input { padding: 8px; font-size: 16px; }
     </style>
 </head>
 <body>
 
-<h1>Click The Circle</h1>
+<h1>Click The Dots</h1>
 
 <div id="startScreen">
     <p>Enter Your Name:</p>
-    <input type="text" id="playerName" placeholder="Your name">
+    <input type="text" id="playerName">
     <br><br>
     <button onclick="startGame()">Start Game</button>
 </div>
@@ -60,95 +53,134 @@
     Time: <span id="time">30</span>
 </div>
 
-<div id="gameArea">
-    <div id="circle"></div>
-</div>
+<div id="gameArea"></div>
 
 <div id="leaderboard"></div>
 
-<script>
-    let score = 0;
-    let timeLeft = 30;
-    let player = "";
-    let timer;
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, push, get } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
-    const circle = document.getElementById("circle");
-    const scoreDisplay = document.getElementById("score");
-    const timeDisplay = document.getElementById("time");
-    const gameArea = document.getElementById("gameArea");
+const firebaseConfig = {
+  apiKey: "AIzaSyBTDDHiEWJUb1qOhRvlvwXxiuB4bNNilfc",
+  authDomain: "click-game-378e6.firebaseapp.com",
+  databaseURL: "https://click-game-378e6-default-rtdb.firebaseio.com/",
+  projectId: "click-game-378e6",
+  storageBucket: "click-game-378e6.firebasestorage.app",
+  messagingSenderId: "623900789347",
+  appId: "1:623900789347:web:df31174faafc600ee28656",
+  measurementId: "G-24QE68D1WX"
+};
 
-    function startGame() {
-        player = document.getElementById("playerName").value;
+const app = initializeApp(firebaseConfig);
+const database = getDatabase(app);
 
-        if (player.trim() === "") {
-            alert("Please enter your name!");
-            return;
+let score = 0;
+let timeLeft = 30;
+let player = "";
+let timer;
+
+const gameArea = document.getElementById("gameArea");
+
+window.startGame = function() {
+    player = document.getElementById("playerName").value;
+    if (player.trim() === "") {
+        alert("Enter name!");
+        return;
+    }
+
+    document.getElementById("startScreen").style.display = "none";
+    document.getElementById("gameInfo").style.display = "block";
+    gameArea.style.display = "block";
+
+    createObjects();
+    moveObjects();
+
+    timer = setInterval(() => {
+        timeLeft--;
+        document.getElementById("time").textContent = timeLeft;
+        if (timeLeft <= 0) {
+            clearInterval(timer);
+            endGame();
         }
+    }, 1000);
+}
 
-        document.getElementById("startScreen").style.display = "none";
-        document.getElementById("gameInfo").style.display = "block";
-        gameArea.style.display = "block";
+function createObjects() {
+    gameArea.innerHTML = "";
 
-        moveCircle();
+    for (let i = 0; i < 3; i++) {
+        let dot = document.createElement("div");
+        dot.classList.add("dot");
 
-        timer = setInterval(function() {
-            timeLeft--;
-            timeDisplay.textContent = timeLeft;
-
-            if (timeLeft <= 0) {
-                clearInterval(timer);
-                endGame();
-            }
-        }, 1000);
-    }
-
-    circle.addEventListener("click", function() {
-        score++;
-        scoreDisplay.textContent = score;
-        moveCircle();
-    });
-
-    function moveCircle() {
-        const maxX = gameArea.clientWidth - 80;
-        const maxY = gameArea.clientHeight - 80;
-
-        const randomX = Math.random() * maxX;
-        const randomY = Math.random() * maxY;
-
-        circle.style.left = randomX + "px";
-        circle.style.top = randomY + "px";
-    }
-
-    function endGame() {
-        circle.style.display = "none";
-        saveScore();
-        showLeaderboard();
-    }
-
-    function saveScore() {
-        let scores = JSON.parse(localStorage.getItem("leaderboard")) || [];
-
-        scores.push({ name: player, score: score });
-
-        scores.sort((a, b) => b.score - a.score);
-
-        scores = scores.slice(0, 5);
-
-        localStorage.setItem("leaderboard", JSON.stringify(scores));
-    }
-
-    function showLeaderboard() {
-        let scores = JSON.parse(localStorage.getItem("leaderboard")) || [];
-        let boardHTML = "<h2>🏆 Leaderboard</h2>";
-
-        scores.forEach((entry, index) => {
-            boardHTML += `<p>${index + 1}. ${entry.name} - ${entry.score}</p>`;
+        dot.addEventListener("pointerdown", () => {
+            score++;
+            document.getElementById("score").textContent = score;
+            moveObjects();
         });
 
-        boardHTML += '<br><button onclick="location.reload()">Play Again</button>';
-
-        document.getElementById("leaderboard").innerHTML = boardHTML;
+        gameArea.appendChild(dot);
     }
+
+    let bomb = document.createElement("div");
+    bomb.classList.add("bomb");
+
+    bomb.addEventListener("pointerdown", () => {
+        score--;
+        document.getElementById("score").textContent = score;
+        moveObjects();
+    });
+
+    gameArea.appendChild(bomb);
+}
+
+function moveObjects() {
+    const objects = document.querySelectorAll(".dot, .bomb");
+
+    objects.forEach(obj => {
+        const maxX = gameArea.clientWidth - 70;
+        const maxY = gameArea.clientHeight - 70;
+
+        obj.style.left = Math.random() * maxX + "px";
+        obj.style.top = Math.random() * maxY + "px";
+    });
+}
+
+function endGame() {
+    saveScore();
+    showLeaderboard();
+    gameArea.innerHTML = "";
+}
+
+function saveScore() {
+    push(ref(database, "scores"), {
+        name: player,
+        score: score
+    });
+}
+
+function showLeaderboard() {
+    get(ref(database, "scores")).then(snapshot => {
+        let scores = [];
+
+        snapshot.forEach(child => {
+            scores.push(child.val());
+        });
+
+        scores.sort((a,b) => b.score - a.score);
+        scores = scores.slice(0,5);
+
+        let html = "<h2>🏆 Global Leaderboard</h2>";
+
+        scores.forEach((entry,index) => {
+            html += `<p>${index+1}. ${entry.name} - ${entry.score}</p>`;
+        });
+
+        html += '<br><button onclick="location.reload()">Play Again</button>';
+
+        document.getElementById("leaderboard").innerHTML = html;
+    });
+}
 </script>
 
 </body>
