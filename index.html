@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html>
 <head>
@@ -7,46 +8,67 @@
 <style>
 
 body{
-    text-align:center;
-    font-family:Arial;
-    background:#f2f2f2;
-    touch-action:manipulation;
+text-align:center;
+font-family:Arial;
+background:linear-gradient(135deg,#4facfe,#00f2fe);
+color:white;
+touch-action:manipulation;
 }
 
 #gameArea{
-    position:relative;
-    width:100%;
-    height:60vh;
-    border:2px solid black;
-    overflow:hidden;
-    display:none;
-    margin-top:20px;
+position:relative;
+width:90%;
+height:60vh;
+margin:auto;
+border-radius:15px;
+background:white;
+overflow:hidden;
+box-shadow:0 10px 25px rgba(0,0,0,0.3);
+display:none;
 }
 
-.dot,.bomb{
-    width:70px;
-    height:70px;
-    border-radius:50%;
-    position:absolute;
+#gameInfo{
+font-size:20px;
+margin:15px;
+}
+
+.dot,.bomb,.gold{
+border-radius:50%;
+position:absolute;
+cursor:pointer;
 }
 
 .dot{
-    background:red;
+background:red;
+animation:pulse 1s infinite;
+}
+
+.gold{
+background:gold;
+animation:pulse 0.8s infinite;
 }
 
 .bomb{
-    background:black;
+background:black;
 }
 
 button{
-    padding:10px 20px;
-    font-size:16px;
-    cursor:pointer;
+padding:10px 20px;
+font-size:16px;
+cursor:pointer;
+border:none;
+border-radius:8px;
 }
 
 input{
-    padding:8px;
-    font-size:16px;
+padding:8px;
+font-size:16px;
+}
+
+@keyframes pulse{
+0%{transform:scale(1)}
+50%{transform:scale(1.2)}
+100%{transform:scale(1)}
 }
 
 </style>
@@ -72,119 +94,205 @@ Time: <span id="time">30</span>
 
 <script>
 
-let score = 0;
-let timeLeft = 30;
-let player = "";
-let timer;
+let score = 0
+let timeLeft = 30
+let player = ""
+let timer
+let moveInterval
+let combo = 0
+let lastClick = 0
 
-const gameArea = document.getElementById("gameArea");
+const gameArea = document.getElementById("gameArea")
+
+const popSound = new Audio("https://www.myinstants.com/media/sounds/pop.mp3")
+const boomSound = new Audio("https://www.myinstants.com/media/sounds/explosion.mp3")
+const goldSound = new Audio("https://www.myinstants.com/media/sounds/coin.mp3")
 
 function startGame(){
 
-    player = document.getElementById("playerName").value.trim();
+player = document.getElementById("playerName").value.trim()
 
-    if(!player){
-        alert("Enter your name!");
-        return;
-    }
+if(!player){
+alert("Enter your name!")
+return
+}
 
-    score = 0;
-    timeLeft = 30;
+score = 0
+timeLeft = 30
 
-    document.getElementById("score").textContent = score;
-    document.getElementById("time").textContent = timeLeft;
+document.getElementById("score").textContent = score
+document.getElementById("time").textContent = timeLeft
 
-    document.getElementById("startScreen").style.display = "none";
-    document.getElementById("gameInfo").style.display = "block";
-    gameArea.style.display = "block";
+document.getElementById("startScreen").style.display="none"
+document.getElementById("gameInfo").style.display="block"
+gameArea.style.display="block"
 
-    createObjects();
+createObjects()
 
-    timer = setInterval(()=>{
+moveInterval = setInterval(moveObjects,800)
 
-        timeLeft--;
-        document.getElementById("time").textContent = timeLeft;
+timer = setInterval(()=>{
 
-        if(timeLeft <= 0){
-            clearInterval(timer);
-            endGame();
-        }
+timeLeft--
+document.getElementById("time").textContent = timeLeft
 
-    },1000);
+if(timeLeft % 5 === 0){
+createObjects()
+}
+
+if(timeLeft <=0){
+clearInterval(timer)
+clearInterval(moveInterval)
+endGame()
+}
+
+},1000)
+
 }
 
 function randomPosition(element){
 
-    const maxX = gameArea.clientWidth - 70;
-    const maxY = gameArea.clientHeight - 70;
+const maxX = gameArea.clientWidth - element.offsetWidth
+const maxY = gameArea.clientHeight - element.offsetHeight
 
-    element.style.left = Math.random() * maxX + "px";
-    element.style.top = Math.random() * maxY + "px";
+element.style.left = Math.random()*maxX+"px"
+element.style.top = Math.random()*maxY+"px"
+
+}
+
+function moveObjects(){
+
+document.querySelectorAll(".dot,.bomb,.gold").forEach(obj=>{
+randomPosition(obj)
+})
+
 }
 
 function createObjects(){
 
-    gameArea.innerHTML = "";
+gameArea.innerHTML=""
 
-    for(let i=0;i<3;i++){
+for(let i=0;i<3;i++){
 
-        const dot = document.createElement("div");
-        dot.classList.add("dot");
+const dot = document.createElement("div")
+dot.classList.add("dot")
 
-        randomPosition(dot);
+const size = 40 + Math.random()*40
+dot.style.width=size+"px"
+dot.style.height=size+"px"
 
-        dot.addEventListener("pointerdown",()=>{
+randomPosition(dot)
 
-            score++;
-            document.getElementById("score").textContent = score;
+dot.addEventListener("pointerdown",()=>{
 
-            randomPosition(dot);
+popSound.currentTime=0
+popSound.play()
 
-            const bomb = document.querySelector(".bomb");
-            if(bomb) randomPosition(bomb);
+let now = Date.now()
 
-        });
+if(now-lastClick<500){
+combo++
+}else{
+combo=1
+}
 
-        gameArea.appendChild(dot);
-    }
+score += combo
+lastClick = now
 
-    const bomb = document.createElement("div");
+document.getElementById("score").textContent=score
 
-    bomb.classList.add("bomb");
+randomPosition(dot)
 
-    randomPosition(bomb);
+})
 
-    bomb.addEventListener("pointerdown",()=>{
+gameArea.appendChild(dot)
 
-        score--;
-        score = Math.max(0,score);
+}
 
-        document.getElementById("score").textContent = score;
+const bomb = document.createElement("div")
 
-        randomPosition(bomb);
+bomb.classList.add("bomb")
+bomb.style.width="60px"
+bomb.style.height="60px"
 
-    });
+randomPosition(bomb)
 
-    gameArea.appendChild(bomb);
+bomb.addEventListener("pointerdown",()=>{
+
+boomSound.currentTime=0
+boomSound.play()
+
+score--
+score=Math.max(0,score)
+
+document.getElementById("score").textContent=score
+
+document.body.style.transform="translateX(10px)"
+setTimeout(()=>{document.body.style.transform="translateX(-10px)"},50)
+setTimeout(()=>{document.body.style.transform="translateX(0)"},100)
+
+randomPosition(bomb)
+
+})
+
+gameArea.appendChild(bomb)
+
+if(Math.random()<0.4){
+
+const gold = document.createElement("div")
+
+gold.classList.add("gold")
+gold.style.width="50px"
+gold.style.height="50px"
+
+randomPosition(gold)
+
+gold.addEventListener("pointerdown",()=>{
+
+goldSound.currentTime=0
+goldSound.play()
+
+score+=5
+
+document.getElementById("score").textContent=score
+
+gold.remove()
+
+})
+
+gameArea.appendChild(gold)
+
+}
+
 }
 
 function endGame(){
 
-    gameArea.innerHTML = "";
+gameArea.innerHTML=""
 
-    const result = document.createElement("div");
+let best = localStorage.getItem("bestScore") || 0
 
-    result.innerHTML = `
-    <h2>Game Over</h2>
-    <p>${player}, your score is <b>${score}</b></p>
-    <br>
-    <button onclick="location.reload()">Play Again</button>
-    `;
+if(score > best){
+best = score
+localStorage.setItem("bestScore",score)
+}
 
-    document.body.appendChild(result);
+const result = document.createElement("div")
+
+result.innerHTML=`
+<h2>Game Over</h2>
+<p>${player}, your score is <b>${score}</b></p>
+<p>🏆 Best Score: ${best}</p>
+<br>
+<button onclick="location.reload()">Play Again</button>
+`
+
+document.body.appendChild(result)
+
 }
 
 </script>
 
 </body>
 </html>
+```
