@@ -1,85 +1,89 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Click The Dots</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <style>
-        body {
-            text-align: center;
-            font-family: Arial;
-            background: #f2f2f2;
-            touch-action: manipulation;
-        }
-        #gameArea {
-            position: relative;
-            width: 100%;
-            height: 60vh;
-            border: 2px solid black;
-            overflow: hidden;
-            display: none;
-            margin-top: 20px;
-        }
-        .dot, .bomb {
-            width: 70px;
-            height: 70px;
-            border-radius: 50%;
-            position: absolute;
-        }
-        .dot { background: red; }
-        .bomb { background: black; }
-        button { padding: 10px 20px; font-size: 16px; cursor: pointer; }
-        input { padding: 8px; font-size: 16px; }
-    </style>
+<title>Click The Dots</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+<style>
+
+body{
+    text-align:center;
+    font-family:Arial;
+    background:#f2f2f2;
+    touch-action:manipulation;
+}
+
+#gameArea{
+    position:relative;
+    width:100%;
+    height:60vh;
+    border:2px solid black;
+    overflow:hidden;
+    display:none;
+    margin-top:20px;
+}
+
+.dot,.bomb{
+    width:70px;
+    height:70px;
+    border-radius:50%;
+    position:absolute;
+}
+
+.dot{
+    background:red;
+}
+
+.bomb{
+    background:black;
+}
+
+button{
+    padding:10px 20px;
+    font-size:16px;
+    cursor:pointer;
+}
+
+input{
+    padding:8px;
+    font-size:16px;
+}
+
+</style>
 </head>
+
 <body>
 
 <h1>Click The Dots</h1>
 
 <div id="startScreen">
-    <p>Enter Your Name:</p>
-    <input type="text" id="playerName" maxlength="15">
-    <br><br>
-    <button onclick="startGame()">Start Game</button>
+<p>Enter Your Name:</p>
+<input type="text" id="playerName" maxlength="15">
+<br><br>
+<button onclick="startGame()">Start Game</button>
 </div>
 
 <div id="gameInfo" style="display:none;">
-    Score: <span id="score">0</span> |
-    Time: <span id="time">30</span>
+Score: <span id="score">0</span> |
+Time: <span id="time">30</span>
 </div>
 
 <div id="gameArea"></div>
 
-<div id="leaderboard"></div>
+<script>
 
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getDatabase, ref, push, get } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
-
-// ===== Firebase Config =====
-const firebaseConfig = {
-  apiKey: "AIzaSyBTDDHiEWJUb1qOhRvlvwXxiuB4bNNilfc",
-  authDomain: "click-game-378e6.firebaseapp.com",
-  databaseURL: "https://click-game-378e6-default-rtdb.firebaseio.com/",
-  projectId: "click-game-378e6",
-  storageBucket: "click-game-378e6.firebasestorage.app",
-  messagingSenderId: "623900789347",
-  appId: "1:623900789347:web:df31174faafc600ee28656"
-};
-
-const app = initializeApp(firebaseConfig);
-const database = getDatabase(app);
-
-// ===== Game Variables =====
 let score = 0;
 let timeLeft = 30;
 let player = "";
 let timer;
+
 const gameArea = document.getElementById("gameArea");
 
-window.startGame = function() {
+function startGame(){
+
     player = document.getElementById("playerName").value.trim();
 
-    if (!player) {
+    if(!player){
         alert("Enter your name!");
         return;
     }
@@ -89,7 +93,6 @@ window.startGame = function() {
 
     document.getElementById("score").textContent = score;
     document.getElementById("time").textContent = timeLeft;
-    document.getElementById("leaderboard").innerHTML = "";
 
     document.getElementById("startScreen").style.display = "none";
     document.getElementById("gameInfo").style.display = "block";
@@ -97,94 +100,91 @@ window.startGame = function() {
 
     createObjects();
 
-    timer = setInterval(() => {
+    timer = setInterval(()=>{
+
         timeLeft--;
         document.getElementById("time").textContent = timeLeft;
 
-        if (timeLeft <= 0) {
+        if(timeLeft <= 0){
             clearInterval(timer);
             endGame();
         }
-    }, 1000);
+
+    },1000);
 }
 
-function randomPosition(element) {
+function randomPosition(element){
+
     const maxX = gameArea.clientWidth - 70;
     const maxY = gameArea.clientHeight - 70;
+
     element.style.left = Math.random() * maxX + "px";
     element.style.top = Math.random() * maxY + "px";
 }
 
-function createObjects() {
+function createObjects(){
+
     gameArea.innerHTML = "";
 
-    for (let i = 0; i < 3; i++) {
+    for(let i=0;i<3;i++){
+
         const dot = document.createElement("div");
         dot.classList.add("dot");
+
         randomPosition(dot);
-        dot.addEventListener("pointerdown", () => {
+
+        dot.addEventListener("pointerdown",()=>{
+
             score++;
             document.getElementById("score").textContent = score;
+
             randomPosition(dot);
+
             const bomb = document.querySelector(".bomb");
-            if (bomb) randomPosition(bomb);
+            if(bomb) randomPosition(bomb);
+
         });
+
         gameArea.appendChild(dot);
     }
 
     const bomb = document.createElement("div");
+
     bomb.classList.add("bomb");
+
     randomPosition(bomb);
-    bomb.addEventListener("pointerdown", () => {
+
+    bomb.addEventListener("pointerdown",()=>{
+
         score--;
-        score = Math.max(0, score);
+        score = Math.max(0,score);
+
         document.getElementById("score").textContent = score;
+
         randomPosition(bomb);
+
     });
+
     gameArea.appendChild(bomb);
 }
 
-async function endGame() {
+function endGame(){
+
     gameArea.innerHTML = "";
-    await saveScore();
-    await showLeaderboard();
+
+    const result = document.createElement("div");
+
+    result.innerHTML = `
+    <h2>Game Over</h2>
+    <p>${player}, your score is <b>${score}</b></p>
+    <br>
+    <button onclick="location.reload()">Play Again</button>
+    `;
+
+    document.body.appendChild(result);
 }
 
-async function saveScore() {
-    try {
-        console.log("Saving score:", player, score);
-        await push(ref(database, "scores"), { name: player, score: score });
-        console.log("✅ Score saved successfully!");
-    } catch (error) {
-        console.error("❌ Error saving score:", error);
-        alert("Failed to save score. Check your internet connection.");
-    }
-}
-
-async function showLeaderboard() {
-    try {
-        const snapshot = await get(ref(database, "scores"));
-        const scores = [];
-        snapshot.forEach(child => scores.push(child.val()));
-
-        scores.sort((a,b) => b.score - a.score);
-        const top5 = scores.slice(0,5);
-
-        let html = "<h2>🏆 Global Leaderboard</h2>";
-        if (top5.length === 0) html += "<p>No scores yet.</p>";
-        else top5.forEach((entry,index) => {
-            html += `<p>${index+1}. ${entry.name} - ${entry.score}</p>`;
-        });
-
-        html += "<br><button onclick='location.reload()'>Play Again</button>";
-        document.getElementById("leaderboard").innerHTML = html;
-
-        console.log("✅ Leaderboard loaded:", top5);
-    } catch (error) {
-        console.error("❌ Error loading leaderboard:", error);
-        document.getElementById("leaderboard").innerHTML = "<p>Failed to load leaderboard.</p>";
-    }
-}
 </script>
+
 </body>
 </html>
